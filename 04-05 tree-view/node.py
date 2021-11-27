@@ -2,6 +2,7 @@ import os
 
 from Qt import QtGui
 
+
 MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
 ICON_PATH = os.path.join(MODULE_PATH, 'icons')
 

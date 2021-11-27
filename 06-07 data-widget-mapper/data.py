@@ -1,11 +1,10 @@
-'''
-Created on 3 maj 2011
+import os
 
-@author: Yasin
-'''
+from Qt import QtGui, QtXml
 
-from PyQt4 import QtXml
 
+MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
+ICON_PATH = os.path.join(MODULE_PATH, 'icons')
 
 
 def enum(*enumerated):
@@ -13,45 +12,38 @@ def enum(*enumerated):
     enums["names"] = enumerated
     return type('enum', (), enums)
     
-    
 
 LIGHT_SHAPES = enum("Point", "Spot", "Directional", "Area", "Volumetric", "End")
 
 
 class Node(object):
-    
     def __init__(self, name, parent=None):
-        
         super(Node, self).__init__()
         
         self._name = name
         self._children = []
         self._parent = parent
+        self._icon = None
         
         if parent is not None:
             parent.addChild(self)
 
-
     def attrs(self):
-
         classes = self.__class__.__mro__
-
         kv = {}
-
         for cls in classes:
             for k, v in cls.__dict__.iteritems():
                 if isinstance(v, property):
+                    # skip icon type property in xml parsing
+                    if k == 'icon':
+                        break
                     print "Property:", k.rstrip("_"), "\n\tValue:", v.fget(self)
                     kv[k] = v.fget(self)
 
         return kv
 
-
-
     def asXml(self):
-        
         doc = QtXml.QDomDocument()
-        
 
         node = doc.createElement(self.typeInfo())
         doc.appendChild(node)
@@ -60,7 +52,6 @@ class Node(object):
             i._recurseXml(doc, node)
 
         return doc.toString(indent=4)
-
 
     def _recurseXml(self, doc, parent):
         node = doc.createElement(self.typeInfo())
@@ -73,10 +64,6 @@ class Node(object):
 
         for i in self._children:
             i._recurseXml(doc, node)
-
-
-
-
 
     def typeInfo(self):
         return "NODE"
@@ -104,14 +91,11 @@ class Node(object):
 
         return True
 
-
-
     def name():
         def fget(self): return self._name
         def fset(self, value): self._name = value
         return locals()
     name = property(**name())
-
 
     def child(self, row):
         return self._children[row]
@@ -121,14 +105,16 @@ class Node(object):
 
     def parent(self):
         return self._parent
-    
+
+    @property
+    def icon(self):
+        return self._icon
+
     def row(self):
         if self._parent is not None:
             return self._parent._children.index(self)
 
-
     def log(self, tabLevel=-1):
-
         output     = ""
         tabLevel += 1
         
@@ -148,24 +134,21 @@ class Node(object):
     def __repr__(self):
         return self.log()
 
-
     def data(self, column):
-        
         if   column is 0: return self.name
         elif column is 1: return self.typeInfo()
     
     def setData(self, column, value):
-        if   column is 0: self.name = value.toPyObject()
+        if   column is 0: self.name = value
         elif column is 1: pass
-    
-    def resource(self):
-        return None
 
 
 class TransformNode(Node):
-    
     def __init__(self, name, parent=None):
         super(TransformNode, self).__init__(name, parent)
+        self._icon = QtGui.QIcon(QtGui.QPixmap(
+            os.path.join(ICON_PATH, 'transform.png')
+        ))
 
         self._x = 0
         self._y = 0
@@ -173,7 +156,6 @@ class TransformNode(Node):
 
     def typeInfo(self):
         return "TRANSFORM"
-
 
     def x():
         def fget(self): return self._x
@@ -193,8 +175,6 @@ class TransformNode(Node):
         return locals()
     z = property(**z())
 
-
-
     def data(self, column):
         r = super(TransformNode, self).data(column)
         
@@ -207,19 +187,19 @@ class TransformNode(Node):
     def setData(self, column, value):
         super(TransformNode, self).setData(column, value)
         
-        if   column is 2: self.x = value.toPyObject()
-        elif column is 3: self.y = value.toPyObject()
-        elif column is 4: self.z = value.toPyObject()
-    
-    def resource(self):
-        return ":/Transform.png"
+        if   column is 2: self.x = value
+        elif column is 3: self.y = value
+        elif column is 4: self.z = value
 
 
 class CameraNode(Node):
     
     def __init__(self, name, parent=None):
         super(CameraNode, self).__init__(name, parent)
-          
+        self._icon = QtGui.QIcon(QtGui.QPixmap(
+            os.path.join(ICON_PATH, 'camera.png')
+        ))
+
         self._motionBlur = True
         self._shakeIntensity = 50.0
                     
@@ -237,9 +217,7 @@ class CameraNode(Node):
         def fget(self): return self._shakeIntensity
         def fset(self, value): self._shakeIntensity = value
         return locals()
-    shakeIntensity = property(**shakeIntensity()) 
-
-
+    shakeIntensity = property(**shakeIntensity())
         
     def data(self, column):
         r = super(CameraNode, self).data(column)
@@ -252,18 +230,16 @@ class CameraNode(Node):
     def setData(self, column, value):
         super(CameraNode, self).setData(column, value)
         
-        if   column is 2: self.motionBlur     = value.toPyObject()
-        elif column is 3: self.shakeIntensity = value.toPyObject()
-    
-    def resource(self):
-        return ":/Camera.png"
-
+        if   column is 2: self.motionBlur     = value
+        elif column is 3: self.shakeIntensity = value
 
 
 class LightNode(Node):
-    
     def __init__(self, name, parent=None):
         super(LightNode, self).__init__(name, parent)
+        self._icon = QtGui.QIcon(QtGui.QPixmap(
+            os.path.join(ICON_PATH, 'light.png')
+        ))
 
         self._intensity = 1.0
         self._nearRange = 40.0
@@ -273,9 +249,6 @@ class LightNode(Node):
 
     def typeInfo(self):
         return "LIGHT"
-    
-
-
 
     def intensity():
         def fget(self): return self._intensity
@@ -306,9 +279,7 @@ class LightNode(Node):
         def fset(self, value): self._shape = value
         return locals()
     shape = property(**shape())
-        
-        
-        
+
     def data(self, column):
         r = super(LightNode, self).data(column)
         
@@ -323,18 +294,8 @@ class LightNode(Node):
     def setData(self, column, value):
         super(LightNode, self).setData(column, value)
         
-        if   column is 2: self.intensity   = value.toPyObject()
-        elif column is 3: self.nearRange   = value.toPyObject()
-        elif column is 4: self.farRange    = value.toPyObject()
-        elif column is 5: self.castShadows = value.toPyObject()
-        elif column is 6: self.shape       = LIGHT_SHAPES.names[value.toPyObject()]
-        
-    def resource(self):
-        return ":/Light.png"
-        
-        
-        
-        
-        
-
-        
+        if   column is 2: self.intensity   = value
+        elif column is 3: self.nearRange   = value
+        elif column is 4: self.farRange    = value
+        elif column is 5: self.castShadows = value
+        elif column is 6: self.shape       = LIGHT_SHAPES.names[value]

@@ -1,15 +1,19 @@
-from PyQt4 import QtCore, QtGui, QtXml, uic
+import os
 import sys
-import Resources
+
+from Qt import QtWidgets, QtCore, QtGui, QtXml
+from Qt import _loadUi
 
 
-from Data import Node, TransformNode, CameraNode, LightNode, LIGHT_SHAPES
-from Models import SceneGraphModel
-    
+from data import Node, TransformNode, CameraNode, LightNode, LIGHT_SHAPES
+from models import SceneGraphModel
+
+
+MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
+UI_FOLDER = os.path.join(MODULE_PATH, 'ui')
+
     
 class XMLHighlighter(QtGui.QSyntaxHighlighter):
- 
-    #INIT THE STUFF
     def __init__(self, parent=None):
         super(XMLHighlighter, self).__init__(parent)
  
@@ -82,38 +86,20 @@ class XMLHighlighter(QtGui.QSyntaxHighlighter):
  
             self.setFormat(startIndex, commentLength, self.valueFormat)
  
-            startIndex = self.valueStartExpression.indexIn(text, startIndex + commentLength);    
+            startIndex = self.valueStartExpression.indexIn(text, startIndex + commentLength);
 
 
-
-
-
-
-
-
-
-
-
-base, form = uic.loadUiType("Views/Window.ui")
-
-class WndTutorial06(base, form):
-    
-
+class WndTutorial06(QtWidgets.QMainWindow):
     def updateXml(self):
-        
         print "UPDATING XML"
-        
         xml = self._rootNode.asXml()
-        
         self.uiXml.setPlainText(xml)
-
-
         
     def __init__(self, parent=None):
-        super(base, self).__init__(parent)
-        self.setupUi(self)
+        super(WndTutorial06, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'Window.ui'), self)
 
-        self._rootNode   = Node("Root")
+        self._rootNode = Node("Root")
         childNode0 = TransformNode("A",    self._rootNode)
         childNode1 = LightNode("B",        self._rootNode)
         childNode2 = CameraNode("C",       self._rootNode)
@@ -123,15 +109,12 @@ class WndTutorial06(base, form):
         childNode6 = TransformNode("G",    childNode5)
         childNode7 = LightNode("H",        childNode6)
         childNode8 = CameraNode("I",       childNode7)
-       
 
-        
-        self._proxyModel = QtGui.QSortFilterProxyModel(self)
+        self._proxyModel = QtCore.QSortFilterProxyModel(self)
         
         """VIEW <------> PROXY MODEL <------> DATA MODEL"""
 
         self._model = SceneGraphModel(self._rootNode, self)
-        
 
         self._proxyModel.setSourceModel(self._model)
         self._proxyModel.setDynamicSortFilter(True)
@@ -142,41 +125,28 @@ class WndTutorial06(base, form):
         self._proxyModel.setFilterKeyColumn(0)
         
         self.uiTree.setModel(self._proxyModel)
-        
 
-        QtCore.QObject.connect(self.uiFilter, QtCore.SIGNAL("textChanged(QString)"), self._proxyModel.setFilterRegExp)
+        self.uiFilter.textChanged.connect(self._proxyModel.setFilterRegExp)
 
         self._propEditor = PropertiesEditor(self)
         self.layoutMain.addWidget(self._propEditor)
         
         self._propEditor.setModel(self._proxyModel)
-        
-        
 
+        #
+        self.uiTree.selectionModel().currentChanged.connect(self._propEditor.setSelection)
+        self._model.dataChanged.connect(self.updateXml)
         
-        QtCore.QObject.connect(self.uiTree.selectionModel(), QtCore.SIGNAL("currentChanged(QModelIndex, QModelIndex)"), self._propEditor.setSelection)
-        QtCore.QObject.connect(self._model, QtCore.SIGNAL("dataChanged(QModelIndex, QModelIndex)"), self.updateXml)
-        
-        #Create our XMLHighlighter derived from QSyntaxHighlighter
+        # Create our XMLHighlighter derived from QSyntaxHighlighter
         highlighter = XMLHighlighter(self.uiXml.document())
 
         self.updateXml()
 
 
-propBase, propForm = uic.loadUiType("Views/Editors.ui")
-nodeBase, nodeForm = uic.loadUiType("Views/NodeEditor.ui") 
-lightBase, lightForm = uic.loadUiType("Views/LightEditor.ui")
-cameraBase, cameraForm = uic.loadUiType("Views/CameraEditor.ui")
-transformBase, transformForm = uic.loadUiType("Views/TransformEditor.ui")
-
-
-
-"""PROPERTIESEDITOR"""
-class PropertiesEditor(propBase, propForm):
-    
-    def __init__(self, parent = None):
-        super(propBase, self).__init__(parent)
-        self.setupUi(self)
+class PropertiesEditor(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(PropertiesEditor, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'Editors.ui'), self)
 
         self._proxyModel = None
 
@@ -184,7 +154,6 @@ class PropertiesEditor(propBase, propForm):
         self._lightEditor = LightEditor(self)
         self._cameraEditor = CameraEditor(self)
         self._transformEditor = TransformEditor(self)
-
         
         self.layoutNode.addWidget(self._nodeEditor)
         self.layoutSpecs.addWidget(self._lightEditor)
@@ -197,13 +166,10 @@ class PropertiesEditor(propBase, propForm):
                
     """INPUTS: QModelIndex, QModelIndex"""
     def setSelection(self, current, old):
-
         current = self._proxyModel.mapToSource(current)
-
         node = current.internalPointer()
         
         if node is not None:
-            
             typeInfo = node.typeInfo()
             
         if typeInfo == "CAMERA":
@@ -229,14 +195,8 @@ class PropertiesEditor(propBase, propForm):
         self._cameraEditor.setSelection(current)
         self._lightEditor.setSelection(current)
         self._transformEditor.setSelection(current)
-        
 
-
-        
-    
-    
     def setModel(self, proxyModel):
-        
         self._proxyModel = proxyModel
         
         self._nodeEditor.setModel(proxyModel)
@@ -245,14 +205,12 @@ class PropertiesEditor(propBase, propForm):
         self._transformEditor.setModel(proxyModel)
 
 
-"""NODE"""
-class NodeEditor(nodeBase, nodeForm):
-    
+class NodeEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(nodeBase, self).__init__(parent)
-        self.setupUi(self)
+        super(NodeEditor, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'NodeEditor.ui'), self)
         
-        self._dataMapper = QtGui.QDataWidgetMapper()
+        self._dataMapper = QtWidgets.QDataWidgetMapper()
         
     def setModel(self, proxyModel):
         self._proxyModel = proxyModel
@@ -263,27 +221,22 @@ class NodeEditor(nodeBase, nodeForm):
         
     """INPUTS: QModelIndex"""
     def setSelection(self, current):
-        
         parent = current.parent()
         self._dataMapper.setRootIndex(parent)
         
         self._dataMapper.setCurrentModelIndex(current)
-        
 
 
-"""LIGHT"""
-class LightEditor(lightBase, lightForm):
-    
+class LightEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(lightBase, self).__init__(parent)
-        self.setupUi(self)
+        super(LightEditor, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'LightEditor.ui'), self)
         
-        self._dataMapper = QtGui.QDataWidgetMapper()
+        self._dataMapper = QtWidgets.QDataWidgetMapper()
    
         for i in LIGHT_SHAPES.names:
             if i != "End":
                 self.uiShape.addItem(i)
-   
 
     def setModel(self, proxyModel):
         self._proxyModel = proxyModel
@@ -303,16 +256,13 @@ class LightEditor(lightBase, lightForm):
         
         self._dataMapper.setCurrentModelIndex(current)
         
-        
-"""CAMERA"""
-class CameraEditor(cameraBase, cameraForm):
-    
+
+class CameraEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(cameraBase, self).__init__(parent)
-        self.setupUi(self)
+        super(CameraEditor, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'CameraEditor.ui'), self)
         
-        self._dataMapper = QtGui.QDataWidgetMapper()
-        
+        self._dataMapper = QtWidgets.QDataWidgetMapper()
         
     def setModel(self, proxyModel):
         self._proxyModel = proxyModel
@@ -329,14 +279,13 @@ class CameraEditor(cameraBase, cameraForm):
         
         self._dataMapper.setCurrentModelIndex(current)
         
-"""TRANSFORM"""
-class TransformEditor(transformBase, transformForm):
-    
-    def __init__(self, parent=None):
-        super(transformBase, self).__init__(parent)
-        self.setupUi(self)
 
-        self._dataMapper = QtGui.QDataWidgetMapper()
+class TransformEditor(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(TransformEditor, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'TransformEditor.ui'), self)
+
+        self._dataMapper = QtWidgets.QDataWidgetMapper()
         
     def setModel(self, proxyModel):
         self._proxyModel = proxyModel
@@ -356,15 +305,9 @@ class TransformEditor(transformBase, transformForm):
         
         
 if __name__ == '__main__':
-    
-    app = QtGui.QApplication(sys.argv)
-    app.setStyle("plastique")
+    app = QtWidgets.QApplication(sys.argv)
     
     wnd = WndTutorial06()
     wnd.show()
-    
-
- 
- 
 
     sys.exit(app.exec_())

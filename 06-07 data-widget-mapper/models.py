@@ -1,15 +1,8 @@
-'''
-Created on 3 maj 2011
+from Qt import QtCore, QtGui
+from data import Node, TransformNode, CameraNode, LightNode
 
-@author: Yasin
-'''
-
-from PyQt4 import QtCore, QtGui
-from Data import Node, TransformNode, CameraNode, LightNode
 
 class SceneGraphModel(QtCore.QAbstractItemModel):
-    
-    
     sortRole   = QtCore.Qt.UserRole
     filterRole = QtCore.Qt.UserRole + 1
     
@@ -17,7 +10,6 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
     def __init__(self, root, parent=None):
         super(SceneGraphModel, self).__init__(parent)
         self._rootNode = root
-
 
     """INPUTS: QModelIndex"""
     """OUTPUT: int"""
@@ -33,13 +25,10 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
     """OUTPUT: int"""
     def columnCount(self, parent):
         return 1
-    
 
-    
     """INPUTS: QModelIndex, int"""
     """OUTPUT: QVariant, strings are cast to QString which is a QVariant"""
     def data(self, index, role):
-        
         if not index.isValid():
             return None
 
@@ -50,8 +39,7 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
  
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
-                resource = node.resource()
-                return QtGui.QIcon(QtGui.QPixmap(resource))
+                return node.icon
             
         if role == SceneGraphModel.sortRole:
             return node.typeInfo()
@@ -59,10 +47,8 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
         if role == SceneGraphModel.filterRole:
             return node.typeInfo()
 
-
     """INPUTS: QModelIndex, QVariant, int (flag)"""
     def setData(self, index, value, role=QtCore.Qt.EditRole):
-
         if index.isValid():
             
             node = index.internalPointer()
@@ -74,7 +60,6 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
             
         return False
 
-    
     """INPUTS: int, Qt::Orientation, int"""
     """OUTPUT: QVariant, strings are cast to QString which is a QVariant"""
     def headerData(self, section, orientation, role):
@@ -83,21 +68,16 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
                 return "Scenegraph"
             else:
                 return "Typeinfo"
-
-        
     
     """INPUTS: QModelIndex"""
     """OUTPUT: int (flag)"""
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
 
-    
-
     """INPUTS: QModelIndex"""
     """OUTPUT: QModelIndex"""
     """Should return the parent of the node with the given QModelIndex"""
     def parent(self, index):
-        
         node = self.getNode(index)
         parentNode = node.parent()
         
@@ -110,18 +90,12 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
     """OUTPUT: QModelIndex"""
     """Should return a QModelIndex that corresponds to the given row, column and parent node"""
     def index(self, row, column, parent):
-        
         parentNode = self.getNode(parent)
-
         childItem = parentNode.child(row)
-
-
         if childItem:
             return self.createIndex(row, column, childItem)
         else:
             return QtCore.QModelIndex()
-
-
 
     """CUSTOM"""
     """INPUTS: QModelIndex"""
@@ -133,10 +107,8 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
             
         return self._rootNode
 
-    
     """INPUTS: int, int, QModelIndex"""
     def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
-        
         parentNode = self.getNode(parent)
         
         self.beginInsertRows(parent, position, position + rows - 1)
@@ -152,7 +124,6 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
         return success
     
     def insertLights(self, position, rows, parent=QtCore.QModelIndex()):
-        
         parentNode = self.getNode(parent)
         
         self.beginInsertRows(parent, position, position + rows - 1)
@@ -169,7 +140,6 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
 
     """INPUTS: int, int, QModelIndex"""
     def removeRows(self, position, rows, parent=QtCore.QModelIndex()):
-        
         parentNode = self.getNode(parent)
         self.beginRemoveRows(parent, position, position + rows - 1)
         
