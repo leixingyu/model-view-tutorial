@@ -13,11 +13,11 @@ UI_FILE = os.path.join(MODULE_PATH, 'main.ui')
 
 
 class TreeModelMainWindow(QtWidgets.QMainWindow):
-
     def __init__(self):
         super(TreeModelMainWindow, self).__init__()
         _loadUi(UI_FILE, self)
 
+        # this node will never get displayed, also known as invisible root
         rootNode = node.Node("Hips")
         childNode0 = node.TransformNode("RightPirateLeg", rootNode)
         childNode1 = node.Node("RightPirateLeg_END", childNode0)
