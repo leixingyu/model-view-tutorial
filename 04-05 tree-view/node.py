@@ -1,8 +1,17 @@
+import os
+
+from Qt import QtGui
+
+MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
+ICON_PATH = os.path.join(MODULE_PATH, 'icons')
+
+
 class Node(object):
     def __init__(self, name, parent=None):
         self._name = name
         self._children = []
         self._parent = parent
+        self._icon = None
 
         if parent is not None:
             parent.addChild(self)
@@ -46,6 +55,10 @@ class Node(object):
     def parent(self):
         return self._parent
 
+    @property
+    def icon(self):
+        return self._icon
+
     def row(self):
         if self._parent is not None:
             return self._parent._children.index(self)
@@ -76,6 +89,9 @@ class TransformNode(Node):
 
     def __init__(self, name, parent=None):
         super(TransformNode, self).__init__(name, parent)
+        self._icon = QtGui.QIcon(QtGui.QPixmap(
+            os.path.join(ICON_PATH, 'transform.png')
+        ))
 
     def typeInfo(self):
         return "TRANSFORM"
@@ -85,6 +101,9 @@ class CameraNode(Node):
 
     def __init__(self, name, parent=None):
         super(CameraNode, self).__init__(name, parent)
+        self._icon = QtGui.QIcon(QtGui.QPixmap(
+            os.path.join(ICON_PATH, 'camera.png')
+        ))
 
     def typeInfo(self):
         return "CAMERA"
@@ -94,6 +113,9 @@ class LightNode(Node):
 
     def __init__(self, name, parent=None):
         super(LightNode, self).__init__(name, parent)
+        self._icon = QtGui.QIcon(QtGui.QPixmap(
+            os.path.join(ICON_PATH, 'light.png')
+        ))
 
     def typeInfo(self):
         return "LIGHT"

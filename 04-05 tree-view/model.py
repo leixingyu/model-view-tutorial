@@ -49,16 +49,7 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
 
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
-                typeInfo = node.typeInfo()
-
-                if typeInfo == "LIGHT":
-                    return QtGui.QIcon(QtGui.QPixmap(":/Light.png"))
-
-                if typeInfo == "TRANSFORM":
-                    return QtGui.QIcon(QtGui.QPixmap(":/Transform.png"))
-
-                if typeInfo == "CAMERA":
-                    return QtGui.QIcon(QtGui.QPixmap(":/Camera.png"))
+                return node.icon
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
 
