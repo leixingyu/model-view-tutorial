@@ -90,15 +90,15 @@ class PropertiesEditor(QtWidgets.QWidget):
         self._lightEditor.setVisible(False)
         self._transformEditor.setVisible(False)
 
-        typeInfo = node.typeInfo() if node else None
+        ntype = node.type if node else None
             
-        if typeInfo == "CAMERA":
+        if ntype == "camera":
             self._cameraEditor.setVisible(True)
         
-        elif typeInfo == "LIGHT":
+        elif ntype == "light":
             self._lightEditor.setVisible(True)
              
-        elif typeInfo == "TRANSFORM":
+        elif ntype == "transform":
             self._transformEditor.setVisible(True)
 
         self._nodeEditor.setSelection(current)
@@ -142,9 +142,8 @@ class LightEditor(QtWidgets.QWidget):
         _loadUi(os.path.join(UI_FOLDER, 'lightEditor.ui'), self)
         
         self._dataMapper = QtWidgets.QDataWidgetMapper()
-        for i in node.LIGHT_SHAPES.names:
-            if i != "End":
-                self.uiShape.addItem(i)
+        for shape in node.LightShapes:
+            self.uiShape.addItem(shape.name)
 
     def setModel(self, proxyModel):
         self._proxyModel = proxyModel

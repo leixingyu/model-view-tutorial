@@ -27,7 +27,6 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
             return None
 
         node = index.internalPointer()
-
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
             return node.data(index.column())
  
@@ -36,10 +35,10 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
                 return node.icon
             
         if role == SceneGraphModel.sortRole:
-            return node.typeInfo()
+            return node.type
 
         if role == SceneGraphModel.filterRole:
-            return node.typeInfo()
+            return node.type
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         if index.isValid():
@@ -54,9 +53,9 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
     def headerData(self, section, orientation, role):
         if role == QtCore.Qt.DisplayRole:
             if section == 0:
-                return "Scenegraph"
+                return "Scene Graph"
             else:
-                return "Typeinfo"
+                return "Type Info"
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
