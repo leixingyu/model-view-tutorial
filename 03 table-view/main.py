@@ -1,18 +1,32 @@
-from xutility import _vendor
-from Qt import QtGui, QtCore, QtWidgets
+"""
+A demonstration on how to create QAbstractTableModel used in QTableView
+
+The TableModel and ListModel are similar in many ways, one of the main
+difference being the introduction of column; with that, the data model becomes
+two-dimensional so the internal instance variable which is the representation
+of the data self._colors is now a two-dimensional list instead of one-dimensional
+(The nested list for colors won't make sense in terms of the context
+but only serve as a demonstration).
+
+The table model also doesn't need parent argument
+as it isn't a hierarchical model
+
+official documents: https://doc.qt.io/qt-5/qabstracttablemodel.html
+subclassing: https://doc.qt.io/qt-5/qabstracttablemodel.html#subclassing
+"""
+
 import sys
+
+from Qt import QtGui, QtCore, QtWidgets
 
 
 class PaletteTableModel(QtCore.QAbstractTableModel):
     def __init__(self, colors, headers, parent=None):
         """
-        Initialization:
-        The nested list for colors won't make sense in terms of the context
-        but only serve as a demonstration.
+        Override: initialization
 
         :param colors: list. nested list of QColors
         :param headers: list. header names
-        :param parent: ???
         """
         QtCore.QAbstractTableModel.__init__(self, parent)
         self._colors = colors
@@ -22,11 +36,15 @@ class PaletteTableModel(QtCore.QAbstractTableModel):
         return len(self._colors)
 
     def columnCount(self, parent):
+        """
+        Override: number of columns (of the given parent).
+        """
         return len(self._colors[0])
 
     def flags(self, index):
         return (QtCore.Qt.ItemIsEditable |
-                QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
+                QtCore.Qt.ItemIsEnabled |
+                QtCore.Qt.ItemIsSelectable)
 
     def data(self, index, role):
         row_index = index.row()
@@ -71,9 +89,6 @@ class PaletteTableModel(QtCore.QAbstractTableModel):
             else:
                 return "Color {}".format(section)
 
-    # =====================================================#
-    # INSERTING & REMOVING
-    # =====================================================#
     def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
         self.beginInsertRows(parent, position, position+rows-1)
         for i in range(rows):
@@ -86,6 +101,15 @@ class PaletteTableModel(QtCore.QAbstractTableModel):
         return True
 
     def insertColumns(self, position, columns, parent=QtCore.QModelIndex()):
+        """
+        Override: insert number of new columns into the model at the given
+        column position under certain parent.
+
+        :param position: int. starting column position to insert
+        :param columns: int. number of columns to insert
+        :param parent: QModelIndex. index of the parent
+        :return: bool. whether or not operation succeeded
+        """
         self.beginInsertColumns(parent, position, position+columns-1)
         rows = self.rowCount(None)
         for _ in range(columns):
@@ -101,14 +125,23 @@ class PaletteTableModel(QtCore.QAbstractTableModel):
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
 
+    # the input data needs to be two-dimensional
     rowCount = 4
     columnCount = 6
     data = [
         [QtGui.QColor("#FFFF00") for column in range(columnCount)]
         for row in range(rowCount)
     ]
-    headers = ["Palette", "Colors", "Brushes", "Omg", "Technical", "Artist"]
-    model = PaletteTableModel(data, headers)
+
+    color_headers = [
+        "Palette",
+        "Colors",
+        "Brushes",
+        "Omg"
+        "Technical",
+        "Artist"
+    ]
+    model = PaletteTableModel(data, color_headers)
     model.insertColumns(0, 5)
 
     tableView = QtWidgets.QTableView()

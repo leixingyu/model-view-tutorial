@@ -1,7 +1,8 @@
 """
 A demonstration on how to create QAbstractListModel used in QListView
 
-official documentation: https://doc.qt.io/qt-5/qabstractlistmodel.html
+official documents: https://doc.qt.io/qt-5/qabstractlistmodel.html
+subclassing: https://doc.qt.io/qt-5/qabstractlistmodel.html#subclassing
 
 Notes:
 QVariant:
@@ -50,7 +51,7 @@ class PaletteListModel(QtCore.QAbstractListModel):
 
     def rowCount(self, parent):
         """
-        Override: number of rows of given parent. when the parent is valid
+        Override: number of rows (of given parent). when the parent is valid
         rowCount returns the number of children of the parent, which is used
         in hierarchical structure like QTreeView
 

@@ -1,5 +1,5 @@
 """
-Demonstrate how data accessed through Model is shared across Views
+Demonstrate how data accessed through a model is shared across multiple views
 """
 
 import sys
