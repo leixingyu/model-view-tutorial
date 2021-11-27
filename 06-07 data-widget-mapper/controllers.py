@@ -4,149 +4,66 @@ import sys
 from Qt import QtWidgets, QtCore, QtGui, QtXml
 from Qt import _loadUi
 
-
-from data import Node, TransformNode, CameraNode, LightNode, LIGHT_SHAPES
-from models import SceneGraphModel
+import node
+import highlighter
+import models
 
 
 MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
 UI_FOLDER = os.path.join(MODULE_PATH, 'ui')
 
-    
-class XMLHighlighter(QtGui.QSyntaxHighlighter):
+
+class DataWidgetMapperWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        super(XMLHighlighter, self).__init__(parent)
- 
-        keywordFormat = QtGui.QTextCharFormat()
-        keywordFormat.setForeground(QtCore.Qt.darkMagenta)
-        keywordFormat.setFontWeight(QtGui.QFont.Bold)
- 
-        keywordPatterns = ["\\b?xml\\b", "/>", ">", "<"]
- 
-        self.highlightingRules = [(QtCore.QRegExp(pattern), keywordFormat)
-                for pattern in keywordPatterns]
- 
-        xmlElementFormat = QtGui.QTextCharFormat()
-        xmlElementFormat.setFontWeight(QtGui.QFont.Bold)
-        xmlElementFormat.setForeground(QtCore.Qt.green)
-        self.highlightingRules.append((QtCore.QRegExp("\\b[A-Za-z0-9_]+(?=[\s/>])"), xmlElementFormat))
- 
-        xmlAttributeFormat = QtGui.QTextCharFormat()
-        xmlAttributeFormat.setFontItalic(True)
-        xmlAttributeFormat.setForeground(QtCore.Qt.blue)
-        self.highlightingRules.append((QtCore.QRegExp("\\b[A-Za-z0-9_]+(?=\\=)"), xmlAttributeFormat))
- 
-        self.valueFormat = QtGui.QTextCharFormat()
-        self.valueFormat.setForeground(QtCore.Qt.red)
- 
-        self.valueStartExpression = QtCore.QRegExp("\"")
-        self.valueEndExpression = QtCore.QRegExp("\"(?=[\s></])")
- 
-        singleLineCommentFormat = QtGui.QTextCharFormat()
-        singleLineCommentFormat.setForeground(QtCore.Qt.gray)
-        self.highlightingRules.append((QtCore.QRegExp("<!--[^\n]*-->"), singleLineCommentFormat))
- 
-    #VIRTUAL FUNCTION WE OVERRIDE THAT DOES ALL THE COLLORING
-    def highlightBlock(self, text):
- 
-        #for every pattern
-        for pattern, format in self.highlightingRules:
- 
-            #Create a regular expression from the retrieved pattern
-            expression = QtCore.QRegExp(pattern)
- 
-            #Check what index that expression occurs at with the ENTIRE text
-            index = expression.indexIn(text)
- 
-            #While the index is greater than 0
-            while index >= 0:
- 
-                #Get the length of how long the expression is true, set the format from the start to the length with the text format
-                length = expression.matchedLength()
-                self.setFormat(index, length, format)
- 
-                #Set index to where the expression ends in the text
-                index = expression.indexIn(text, index + length)
- 
-        #HANDLE QUOTATION MARKS NOW.. WE WANT TO START WITH " AND END WITH ".. A THIRD " SHOULD NOT CAUSE THE WORDS INBETWEEN SECOND AND THIRD TO BE COLORED
-        self.setCurrentBlockState(0)
- 
-        startIndex = 0
-        if self.previousBlockState() != 1:
-            startIndex = self.valueStartExpression.indexIn(text)
- 
-        while startIndex >= 0:
-            endIndex = self.valueEndExpression.indexIn(text, startIndex)
- 
-            if endIndex == -1:
-                self.setCurrentBlockState(1)
-                commentLength = len(text) - startIndex
-            else:
-                commentLength = endIndex - startIndex + self.valueEndExpression.matchedLength()
- 
-            self.setFormat(startIndex, commentLength, self.valueFormat)
- 
-            startIndex = self.valueStartExpression.indexIn(text, startIndex + commentLength);
+        super(DataWidgetMapperWindow, self).__init__(parent)
+        _loadUi(os.path.join(UI_FOLDER, 'mainWindow.ui'), self)
 
+        self._rootNode = node.Node("Root")
+        childNode0 = node.TransformNode("A", self._rootNode)
+        childNode1 = node.LightNode("B", self._rootNode)
+        childNode2 = node.CameraNode("C", self._rootNode)
+        childNode3 = node.TransformNode("D", self._rootNode)
+        childNode4 = node.LightNode("E", self._rootNode)
+        childNode5 = node.CameraNode("F", self._rootNode)
+        childNode6 = node.TransformNode("G", childNode5)
+        childNode7 = node.LightNode("H", childNode6)
+        childNode8 = node.CameraNode("I", childNode7)
 
-class WndTutorial06(QtWidgets.QMainWindow):
-    def updateXml(self):
-        print "UPDATING XML"
-        xml = self._rootNode.asXml()
-        self.uiXml.setPlainText(xml)
-        
-    def __init__(self, parent=None):
-        super(WndTutorial06, self).__init__(parent)
-        _loadUi(os.path.join(UI_FOLDER, 'Window.ui'), self)
+        self._model = models.SceneGraphModel(self._rootNode, self)
 
-        self._rootNode = Node("Root")
-        childNode0 = TransformNode("A",    self._rootNode)
-        childNode1 = LightNode("B",        self._rootNode)
-        childNode2 = CameraNode("C",       self._rootNode)
-        childNode3 = TransformNode("D",    self._rootNode)
-        childNode4 = LightNode("E",        self._rootNode)
-        childNode5 = CameraNode("F",       self._rootNode)
-        childNode6 = TransformNode("G",    childNode5)
-        childNode7 = LightNode("H",        childNode6)
-        childNode8 = CameraNode("I",       childNode7)
-
+        # proxy model
         self._proxyModel = QtCore.QSortFilterProxyModel(self)
-        
-        """VIEW <------> PROXY MODEL <------> DATA MODEL"""
-
-        self._model = SceneGraphModel(self._rootNode, self)
-
         self._proxyModel.setSourceModel(self._model)
         self._proxyModel.setDynamicSortFilter(True)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         
-        self._proxyModel.setSortRole(SceneGraphModel.sortRole)
-        self._proxyModel.setFilterRole(SceneGraphModel.filterRole)
+        self._proxyModel.setSortRole(models.SceneGraphModel.sortRole)
+        self._proxyModel.setFilterRole(models.SceneGraphModel.filterRole)
         self._proxyModel.setFilterKeyColumn(0)
         
         self.uiTree.setModel(self._proxyModel)
-
         self.uiFilter.textChanged.connect(self._proxyModel.setFilterRegExp)
 
         self._propEditor = PropertiesEditor(self)
         self.layoutMain.addWidget(self._propEditor)
-        
         self._propEditor.setModel(self._proxyModel)
-
-        #
         self.uiTree.selectionModel().currentChanged.connect(self._propEditor.setSelection)
-        self._model.dataChanged.connect(self.updateXml)
-        
-        # Create our XMLHighlighter derived from QSyntaxHighlighter
-        highlighter = XMLHighlighter(self.uiXml.document())
 
+        self._model.dataChanged.connect(self.updateXml)
+        # Create our XMLHighlighter derived from QSyntaxHighlighter
+        highlighter.XMLHighlighter(self.uiXml.document())
         self.updateXml()
+
+    def updateXml(self):
+        print "UPDATING XML"
+        xml = self._rootNode.asXml()
+        self.uiXml.setPlainText(xml)
 
 
 class PropertiesEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(PropertiesEditor, self).__init__(parent)
-        _loadUi(os.path.join(UI_FOLDER, 'Editors.ui'), self)
+        _loadUi(os.path.join(UI_FOLDER, 'mainLayout.ui'), self)
 
         self._proxyModel = None
 
@@ -168,28 +85,21 @@ class PropertiesEditor(QtWidgets.QWidget):
     def setSelection(self, current, old):
         current = self._proxyModel.mapToSource(current)
         node = current.internalPointer()
-        
-        if node is not None:
-            typeInfo = node.typeInfo()
+
+        self._cameraEditor.setVisible(False)
+        self._lightEditor.setVisible(False)
+        self._transformEditor.setVisible(False)
+
+        typeInfo = node.typeInfo() if node else None
             
         if typeInfo == "CAMERA":
             self._cameraEditor.setVisible(True)
-            self._lightEditor.setVisible(False)
-            self._transformEditor.setVisible(False)
         
         elif typeInfo == "LIGHT":
-            self._cameraEditor.setVisible(False)
             self._lightEditor.setVisible(True)
-            self._transformEditor.setVisible(False)
              
         elif typeInfo == "TRANSFORM":
-            self._cameraEditor.setVisible(False)
-            self._lightEditor.setVisible(False)
             self._transformEditor.setVisible(True)
-        else:
-            self._cameraEditor.setVisible(False)
-            self._lightEditor.setVisible(False)
-            self._transformEditor.setVisible(False)
 
         self._nodeEditor.setSelection(current)
         self._cameraEditor.setSelection(current)
@@ -208,7 +118,7 @@ class PropertiesEditor(QtWidgets.QWidget):
 class NodeEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(NodeEditor, self).__init__(parent)
-        _loadUi(os.path.join(UI_FOLDER, 'NodeEditor.ui'), self)
+        _loadUi(os.path.join(UI_FOLDER, 'nodeEditor.ui'), self)
         
         self._dataMapper = QtWidgets.QDataWidgetMapper()
         
@@ -223,18 +133,16 @@ class NodeEditor(QtWidgets.QWidget):
     def setSelection(self, current):
         parent = current.parent()
         self._dataMapper.setRootIndex(parent)
-        
         self._dataMapper.setCurrentModelIndex(current)
 
 
 class LightEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(LightEditor, self).__init__(parent)
-        _loadUi(os.path.join(UI_FOLDER, 'LightEditor.ui'), self)
+        _loadUi(os.path.join(UI_FOLDER, 'lightEditor.ui'), self)
         
         self._dataMapper = QtWidgets.QDataWidgetMapper()
-   
-        for i in LIGHT_SHAPES.names:
+        for i in node.LIGHT_SHAPES.names:
             if i != "End":
                 self.uiShape.addItem(i)
 
@@ -250,17 +158,15 @@ class LightEditor(QtWidgets.QWidget):
         
     """INPUTS: QModelIndex"""
     def setSelection(self, current):
-        
         parent = current.parent()
         self._dataMapper.setRootIndex(parent)
-        
         self._dataMapper.setCurrentModelIndex(current)
         
 
 class CameraEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(CameraEditor, self).__init__(parent)
-        _loadUi(os.path.join(UI_FOLDER, 'CameraEditor.ui'), self)
+        _loadUi(os.path.join(UI_FOLDER, 'cameraEditor.ui'), self)
         
         self._dataMapper = QtWidgets.QDataWidgetMapper()
         
@@ -273,17 +179,15 @@ class CameraEditor(QtWidgets.QWidget):
         
     """INPUTS: QModelIndex"""
     def setSelection(self, current):
-        
         parent = current.parent()
         self._dataMapper.setRootIndex(parent)
-        
         self._dataMapper.setCurrentModelIndex(current)
         
 
 class TransformEditor(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(TransformEditor, self).__init__(parent)
-        _loadUi(os.path.join(UI_FOLDER, 'TransformEditor.ui'), self)
+        _loadUi(os.path.join(UI_FOLDER, 'transformEditor.ui'), self)
 
         self._dataMapper = QtWidgets.QDataWidgetMapper()
         
@@ -297,17 +201,15 @@ class TransformEditor(QtWidgets.QWidget):
         
     """INPUTS: QModelIndex"""
     def setSelection(self, current):
-        
         parent = current.parent()
         self._dataMapper.setRootIndex(parent)
-        
         self._dataMapper.setCurrentModelIndex(current)
         
         
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     
-    wnd = WndTutorial06()
+    wnd = DataWidgetMapperWindow()
     wnd.show()
 
     sys.exit(app.exec_())

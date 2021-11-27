@@ -21,49 +21,74 @@ class Node(object):
         super(Node, self).__init__()
         
         self._name = name
-        self._children = []
+        self._children = list()
         self._parent = parent
         self._icon = None
         
-        if parent is not None:
+        if parent:
             parent.addChild(self)
+
+    def __repr__(self):
+        tabLevel = -1
+        output = ""
+
+        tabLevel += 1
+        for i in range(tabLevel):
+            output += "\t"
+        output += "|------"+self._name+"\n"
+
+        for child in self._children:
+            output += child.log(tabLevel)
+
+        tabLevel -= 1
+        output += "\n"
+
+        return output
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
+    @property
+    def icon(self):
+        return self._icon
 
     def attrs(self):
         classes = self.__class__.__mro__
-        kv = {}
+        kv = dict()
         for cls in classes:
+            # get property name and object
             for k, v in cls.__dict__.iteritems():
                 if isinstance(v, property):
                     # skip icon type property in xml parsing
                     if k == 'icon':
                         break
-                    print "Property:", k.rstrip("_"), "\n\tValue:", v.fget(self)
-                    kv[k] = v.fget(self)
-
+                    print "Property:", k.rstrip("_"), "\n\tValue:", getattr(self, k)
+                    kv[k] = getattr(self, k)
         return kv
 
     def asXml(self):
         doc = QtXml.QDomDocument()
-
         node = doc.createElement(self.typeInfo())
         doc.appendChild(node)
-       
-        for i in self._children:
-            i._recurseXml(doc, node)
+        for child in self._children:
+            child._recurseXml(doc, node)
 
         return doc.toString(indent=4)
 
     def _recurseXml(self, doc, parent):
         node = doc.createElement(self.typeInfo())
         parent.appendChild(node)
-
         attrs = self.attrs().iteritems()
-        
         for k, v in attrs:
             node.setAttribute(k, v)
 
-        for i in self._children:
-            i._recurseXml(doc, node)
+        for child in self._children:
+            child._recurseXml(doc, node)
 
     def typeInfo(self):
         return "NODE"
@@ -73,7 +98,6 @@ class Node(object):
         child._parent = self
 
     def insertChild(self, position, child):
-        
         if position < 0 or position > len(self._children):
             return False
         
@@ -82,20 +106,11 @@ class Node(object):
         return True
 
     def removeChild(self, position):
-        
         if position < 0 or position > len(self._children):
             return False
-        
         child = self._children.pop(position)
         child._parent = None
-
         return True
-
-    def name():
-        def fget(self): return self._name
-        def fset(self, value): self._name = value
-        return locals()
-    name = property(**name())
 
     def child(self, row):
         return self._children[row]
@@ -106,41 +121,19 @@ class Node(object):
     def parent(self):
         return self._parent
 
-    @property
-    def icon(self):
-        return self._icon
-
     def row(self):
-        if self._parent is not None:
+        if self._parent:
             return self._parent._children.index(self)
 
-    def log(self, tabLevel=-1):
-        output     = ""
-        tabLevel += 1
-        
-        for i in range(tabLevel):
-            output += "\t"
-        
-        output += "|------" + self._name + "\n"
-        
-        for child in self._children:
-            output += child.log(tabLevel)
-        
-        tabLevel -= 1
-        output += "\n"
-        
-        return output
-
-    def __repr__(self):
-        return self.log()
-
     def data(self, column):
-        if   column is 0: return self.name
-        elif column is 1: return self.typeInfo()
+        if column == 0:
+            return self.name
+        elif column == 1:
+            return self.typeInfo()
     
     def setData(self, column, value):
-        if   column is 0: self.name = value
-        elif column is 1: pass
+        if column == 0:
+            self.name = value
 
 
 class TransformNode(Node):
@@ -157,43 +150,51 @@ class TransformNode(Node):
     def typeInfo(self):
         return "TRANSFORM"
 
-    def x():
-        def fget(self): return self._x
-        def fset(self, value): self._x = value
-        return locals()
-    x = property(**x())
+    @property
+    def x(self):
+        return self._x
 
-    def y():
-        def fget(self): return self._y
-        def fset(self, value): self._y = value
-        return locals()
-    y = property(**y())
-    
-    def z():
-        def fget(self): return self._z
-        def fset(self, value): self._z = value
-        return locals()
-    z = property(**z())
+    @x.setter
+    def x(self, value):
+        self._x = value
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        self.y = value
+
+    @property
+    def z(self):
+        return self._z
+
+    @z.setter
+    def z(self, value):
+        self.z = value
 
     def data(self, column):
         r = super(TransformNode, self).data(column)
-        
-        if   column is 2: r = self.x
-        elif column is 3: r = self.y
-        elif column is 4: r = self.z
-        
+        if column == 2:
+            r = self.x
+        elif column == 3:
+            r = self.y
+        elif column == 4:
+            r = self.z
         return r
     
     def setData(self, column, value):
         super(TransformNode, self).setData(column, value)
-        
-        if   column is 2: self.x = value
-        elif column is 3: self.y = value
-        elif column is 4: self.z = value
+        if column == 2:
+            self.x = value
+        elif column == 3:
+            self.y = value
+        elif column == 4:
+            self.z = value
 
 
 class CameraNode(Node):
-    
     def __init__(self, name, parent=None):
         super(CameraNode, self).__init__(name, parent)
         self._icon = QtGui.QIcon(QtGui.QPixmap(
@@ -206,32 +207,37 @@ class CameraNode(Node):
     def typeInfo(self):
         return "CAMERA"
 
-
-    def motionBlur():
-        def fget(self): return self._motionBlur
-        def fset(self, value): self._motionBlur = value
-        return locals()
-    motionBlur = property(**motionBlur())
+    @property
+    def motionBlur(self):
+        return self._motionBlur
+    
+    @motionBlur.setter
+    def motionBlur(self, value):
+        self._motionBlur = value
      
-    def shakeIntensity():
-        def fget(self): return self._shakeIntensity
-        def fset(self, value): self._shakeIntensity = value
-        return locals()
-    shakeIntensity = property(**shakeIntensity())
+    @property
+    def shakeIntensity(self):
+        return self._shakeIntensity
+    
+    @shakeIntensity.setter
+    def shakeIntensity(self, value):
+        self._shakeIntensity = value
         
     def data(self, column):
         r = super(CameraNode, self).data(column)
-        
-        if   column is 2: r = self.motionBlur
-        elif column is 3: r = self.shakeIntensity
+        if column == 2:
+            r = self.motionBlur
+        elif column == 3:
+            r = self.shakeIntensity
         
         return r
     
     def setData(self, column, value):
         super(CameraNode, self).setData(column, value)
-        
-        if   column is 2: self.motionBlur     = value
-        elif column is 3: self.shakeIntensity = value
+        if column == 2:
+            self.motionBlur = value
+        elif column == 3:
+            self.shakeIntensity = value
 
 
 class LightNode(Node):
@@ -250,52 +256,71 @@ class LightNode(Node):
     def typeInfo(self):
         return "LIGHT"
 
-    def intensity():
-        def fget(self): return self._intensity
-        def fset(self, value): self._intensity = value
-        return locals()
-    intensity = property(**intensity())
+    @property
+    def intensity(self):
+        return self._intensity
     
-    def nearRange():
-        def fget(self): return self._nearRange
-        def fset(self, value): self._nearRange = value
-        return locals()
-    nearRange = property(**nearRange())
+    @intensity.setter
+    def intensity(self, value):
+        self._intensity = value
     
-    def farRange():
-        def fget(self): return self._farRange
-        def fset(self, value): self._farRange = value
-        return locals()
-    farRange = property(**farRange())
-        
-    def castShadows():
-        def fget(self): return self._castShadows
-        def fset(self, value): self._castShadows = value
-        return locals()
-    castShadows = property(**castShadows())
+    @property
+    def nearRange(self):
+        return self._nearRange
+    
+    @nearRange.setter
+    def nearRange(self, value):
+        self._nearRange = value
 
-    def shape():
-        def fget(self): return self._shape
-        def fset(self, value): self._shape = value
-        return locals()
-    shape = property(**shape())
+    @property
+    def farRange(self):
+        return self._farRange
+
+    @farRange.setter
+    def farRange(self, value):
+        self._farRange = value
+
+    @property
+    def castShadows(self):
+        return self._castShadows
+
+    @castShadows.setter
+    def castShadows(self, value):
+        self._castShadows = value
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @shape.setter
+    def shape(self, value):
+        self._shape = value
 
     def data(self, column):
         r = super(LightNode, self).data(column)
-        
-        if   column is 2: r = self.intensity
-        elif column is 3: r = self.nearRange
-        elif column is 4: r = self.farRange
-        elif column is 5: r = self.castShadows
-        elif column is 6: r = LIGHT_SHAPES.names.index(self.shape)
+        if column == 2:
+            r = self.intensity
+        elif column == 3:
+            r = self.nearRange
+        elif column == 4:
+            r = self.farRange
+        elif column == 5:
+            r = self.castShadows
+        elif column == 6:
+            r = LIGHT_SHAPES.names.index(self.shape)
         
         return r
     
     def setData(self, column, value):
         super(LightNode, self).setData(column, value)
         
-        if   column is 2: self.intensity   = value
-        elif column is 3: self.nearRange   = value
-        elif column is 4: self.farRange    = value
-        elif column is 5: self.castShadows = value
-        elif column is 6: self.shape       = LIGHT_SHAPES.names[value]
+        if column == 2:
+            self.intensity = value
+        elif column == 3:
+            self.nearRange = value
+        elif column == 4:
+            self.farRange = value
+        elif column == 5:
+            self.castShadows = value
+        elif column == 6:
+            self.shape = LIGHT_SHAPES.names[value]
