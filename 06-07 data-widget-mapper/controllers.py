@@ -19,6 +19,7 @@ from Qt import _loadUi
 import node
 import highlighter
 import models
+import dataMapperWidget
 
 
 MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -55,8 +56,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.uiTree.setModel(self._proxyModel)
 
-        # add main layout
-        self._propEditor = PropertiesEditor(self._proxyModel, self)
+        # add container layout for holding property widget
+        self._propEditor = PropertyContainerWidget(self._proxyModel, self)
         self.layoutMain.addWidget(self._propEditor)
 
         # for xml highlighting
@@ -79,44 +80,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.uiXml.setPlainText(xml)
 
 
-class DataMapperWidget(QtWidgets.QWidget):
-    """
-    Abstract class for widget with data mapper setup
-    """
+class PropertyContainerWidget(QtWidgets.QWidget):
     def __init__(self, model, parent=None):
-        super(DataMapperWidget, self).__init__(parent)
-        self._dataMapper = QtWidgets.QDataWidgetMapper()
-
-        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setModel
-        if isinstance(model, QtCore.QAbstractProxyModel):
-            model = model.sourceModel()
-        self._dataMapper.setModel(model)
-
-    def addMapping(self):
-        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#addMapping
-        self._dataMapper.addMapping(self.uiName, 0)
-        self._dataMapper.addMapping(self.uiType, 1)
-
-    """INPUTS: QModelIndex"""
-    def setSelection(self, current):
-        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setRootIndex
-        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setCurrentModelIndex
-        parent = current.parent()
-        self._dataMapper.setRootIndex(parent)
-        self._dataMapper.setCurrentModelIndex(current)
-
-
-class PropertiesEditor(QtWidgets.QWidget):
-    def __init__(self, model, parent=None):
-        super(PropertiesEditor, self).__init__(parent)
+        super(PropertyContainerWidget, self).__init__(parent)
         _loadUi(os.path.join(UI_FOLDER, 'mainLayout.ui'), self)
 
         self._proxyModel = model
 
-        self._nodeEditor = NodeEditor(model, self)
-        self._lightEditor = LightEditor(model, self)
-        self._cameraEditor = CameraEditor(model, self)
-        self._transformEditor = TransformEditor(model, self)
+        self._nodeEditor = dataMapperWidget.NodeEditor(model, self)
+        self._lightEditor = dataMapperWidget.LightEditor(model, self)
+        self._cameraEditor = dataMapperWidget.CameraEditor(model, self)
+        self._transformEditor = dataMapperWidget.TransformEditor(model, self)
         
         self.layoutNode.addWidget(self._nodeEditor)
         self.layoutSpecs.addWidget(self._lightEditor)
@@ -155,59 +129,6 @@ class PropertiesEditor(QtWidgets.QWidget):
             self._transformEditor.setSelection(current)
 
 
-class NodeEditor(DataMapperWidget):
-    def __init__(self, model, parent=None):
-        super(NodeEditor, self).__init__(model, parent)
-        _loadUi(os.path.join(UI_FOLDER, 'nodeEditor.ui'), self)
-        self.addMapping()
-        
-    def addMapping(self):
-        self._dataMapper.addMapping(self.uiName, 0)
-        self._dataMapper.addMapping(self.uiType, 1)
-
-
-class LightEditor(DataMapperWidget):
-    def __init__(self, model, parent=None):
-        super(LightEditor, self).__init__(model, parent)
-        _loadUi(os.path.join(UI_FOLDER, 'lightEditor.ui'), self)
-
-        for shape in node.LightShapes:
-            self.uiShape.addItem(shape.name)
-        self.addMapping()
-
-    def addMapping(self):
-        self._dataMapper.addMapping(self.uiLightIntensity, 2)
-        self._dataMapper.addMapping(self.uiNear, 3)
-        self._dataMapper.addMapping(self.uiFar, 4)
-        self._dataMapper.addMapping(self.uiShadows, 5)
-        self._dataMapper.addMapping(self.uiShape, 6, "currentIndex")
-        
-
-class CameraEditor(DataMapperWidget):
-    def __init__(self, model, parent=None):
-        super(CameraEditor, self).__init__(model, parent)
-        _loadUi(os.path.join(UI_FOLDER, 'cameraEditor.ui'), self)
-
-        self.addMapping()
-        
-    def addMapping(self):
-        self._dataMapper.addMapping(self.uiMotionBlur, 2)
-        self._dataMapper.addMapping(self.uiShakeIntensity, 3)
-        
-
-class TransformEditor(DataMapperWidget):
-    def __init__(self, model, parent=None):
-        super(TransformEditor, self).__init__(model, parent)
-        _loadUi(os.path.join(UI_FOLDER, 'transformEditor.ui'), self)
-
-        self.addMapping()
-        
-    def addMapping(self):
-        self._dataMapper.addMapping(self.uiX, 2)
-        self._dataMapper.addMapping(self.uiY, 3)
-        self._dataMapper.addMapping(self.uiZ, 4)
-        
-        
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     
