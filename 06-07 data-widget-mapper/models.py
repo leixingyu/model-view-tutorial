@@ -17,34 +17,42 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
         else:
             parentNode = parent.internalPointer()
 
-        return parentNode.childCount()
+        return parentNode.childCount
 
     def columnCount(self, parent):
         return 1
 
     def data(self, index, role):
+        """
+        Override: due to the complexity of the Node type, it is better to pass
+        the value for the Node to return data() for display internally
+        """
         if not index.isValid():
             return None
 
-        node = index.internalPointer()
+        currentNode = index.internalPointer()
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
-            return node.data(index.column())
+            return currentNode.data(index.column())
  
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
-                return node.icon
+                return currentNode.icon
             
         if role == SceneGraphModel.sortRole:
-            return node.type
+            return currentNode.type
 
         if role == SceneGraphModel.filterRole:
-            return node.type
+            return currentNode.type
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
+        """
+        Override: due to the complexity of the Node type, it is better to pass
+        the value for the Node to handle setData() for editing internally
+        """
         if index.isValid():
-            node = index.internalPointer()
+            currentNode = index.internalPointer()
             if role == QtCore.Qt.EditRole:
-                node.setData(index.column(), value)
+                currentNode.setData(index.column(), value)
                 self.dataChanged.emit(index, index)
                 return True
             
@@ -60,36 +68,31 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
 
-    """INPUTS: QModelIndex"""
-    """OUTPUT: QModelIndex"""
-    """Should return the parent of the node with the given QModelIndex"""
     def parent(self, index):
-        node = self.getNode(index)
-        parentNode = node.parent()
+        currentNode = self.getNode(index)
+        parentNode = currentNode.parent
         
         if parentNode == self._rootNode:
             return QtCore.QModelIndex()
         
-        return self.createIndex(parentNode.row(), 0, parentNode)
-        
-    """INPUTS: int, int, QModelIndex"""
-    """OUTPUT: QModelIndex"""
-    """Should return a QModelIndex that corresponds to the given row, column and parent node"""
+        return self.createIndex(parentNode.row, 0, parentNode)
+
     def index(self, row, column, parent):
         parentNode = self.getNode(parent)
-        childItem = parentNode.child(row)
-        if childItem:
-            return self.createIndex(row, column, childItem)
+        currentNode = parentNode.child(row)
+        if currentNode:
+            return self.createIndex(row, column, currentNode)
         else:
             return QtCore.QModelIndex()
 
-    """CUSTOM"""
-    """INPUTS: QModelIndex"""
     def getNode(self, index):
+        """
+        Custom method
+        """
         if index.isValid():
-            node = index.internalPointer()
-            if node:
-                return node
+            currentNode = index.internalPointer()
+            if currentNode:
+                return currentNode
         return self._rootNode
 
     def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
@@ -114,7 +117,6 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
         self.endInsertRows()
         return True
 
-    """INPUTS: int, int, QModelIndex"""
     def removeRows(self, position, rows, parent=QtCore.QModelIndex()):
         parentNode = self.getNode(parent)
         self.beginRemoveRows(parent, position, position + rows - 1)

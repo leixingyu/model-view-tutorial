@@ -1,3 +1,10 @@
+"""
+The node module is for creating node data structure/class that supports
+hierarchical model. Each node object reflects to an abstract item which
+has child and parent relationships; Different types of node also has its
+own custom properties
+"""
+
 import os
 from enum import IntEnum, unique
 
@@ -57,23 +64,50 @@ class Node(object):
         self._name = value
 
     @property
+    def childCount(self):
+        return len(self._children)
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def row(self):
+        if self.parent:
+            return self.parent._children.index(self)
+        return 0
+
+    @property
     def icon(self):
         return self._icon
 
+    # ------------ XML Generation ---------------#
+
     def attrs(self):
+        """
+        Parse class property list and values used for generating xml
+
+        :return: dict. property names and values
+        """
         classes = self.__class__.__mro__
         kv = dict()
         for cls in classes:
             # get property name and object
             for k, v in cls.__dict__.iteritems():
                 if isinstance(v, property):
-                    # skip icon type property in xml parsing
-                    if k in ['icon', 'type']:
+                    # skip properties in xml parsing
+                    if k in ['icon', 'type', 'parent', 'row', 'childCount']:
                         break
                     kv[k] = getattr(self, k)
         return kv
 
     def asXml(self):
+        """
+        Return the xml formatting of the node hierarchy and all of its
+        attribute/property names and values, used on root node
+
+        :return: str. output string formatted as xml
+        """
         doc = QtXml.QDomDocument()
         node = doc.createElement(self.type)
         doc.appendChild(node)
@@ -83,6 +117,12 @@ class Node(object):
         return doc.toString(indent=4)
 
     def _recurseXml(self, doc, parent):
+        """
+        Recursively generate xml elements
+
+        :param doc: QDomDocument. xml root
+        :param parent: QDomElement. xml parent element
+        """
         node = doc.createElement(self.type)
         parent.appendChild(node)
         attrs = self.attrs().iteritems()
@@ -91,6 +131,8 @@ class Node(object):
 
         for child in self._children:
             child._recurseXml(doc, node)
+
+    # -------------- Child insert/remove -------------- #
 
     def addChild(self, child):
         self._children.append(child)
@@ -113,24 +155,30 @@ class Node(object):
 
     def child(self, row):
         return self._children[row]
-    
-    def childCount(self):
-        return len(self._children)
 
-    def parent(self):
-        return self._parent
-
-    def row(self):
-        if self._parent:
-            return self._parent._children.index(self)
+    # ---------------- Data <-> Model handling ------------------- #
 
     def data(self, column):
+        """
+        Custom: return underlying value of the current Node based on column,
+        used for displaying data used in the model
+
+        :param column: int. column index of the model
+        :return:
+        """
         if column == 0:
             return self.name
         elif column == 1:
             return self.type
     
     def setData(self, column, value):
+        """
+        Custom: set values for the current Node based on column, input value,
+        used for editing data used in the model
+
+        :param column: int. column index of the model
+        :param value: QVariant. value for a certain property of the item
+        """
         if column == 0:
             self.name = value
 
@@ -145,10 +193,6 @@ class TransformNode(Node):
         self._x = 0
         self._y = 0
         self._z = 0
-
-    @property
-    def type(self):
-        return self._type
 
     @property
     def x(self):
@@ -203,10 +247,6 @@ class CameraNode(Node):
         self._type = 'camera'
         self._motionBlur = True
         self._shakeIntensity = 50.0
-                    
-    @property
-    def type(self):
-        return self._type
 
     @property
     def motionBlur(self):
@@ -253,10 +293,6 @@ class LightNode(Node):
         self._farRange = 80.0
         self._castShadows = True
         self._shape = LightShapes(0)
-
-    @property
-    def type(self):
-        return self._type
 
     @property
     def intensity(self):
