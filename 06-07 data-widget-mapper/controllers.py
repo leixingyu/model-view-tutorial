@@ -1,3 +1,15 @@
+"""
+
+
+The xml serves only for the purpose of displaying the data, which is a one-way
+direction data communication
+
+selectionModel()
+qt docs: https://doc.qt.io/qt-5/qabstractitemview.html#selectionModel
+
+https://stackoverflow.com/questions/53483965/qtreeview-selectionchanged-trigger-method
+"""
+
 import os
 import sys
 
@@ -13,11 +25,12 @@ MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
 UI_FOLDER = os.path.join(MODULE_PATH, 'ui')
 
 
-class DataWidgetMapperWindow(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
-        super(DataWidgetMapperWindow, self).__init__(parent)
+        super(MainWindow, self).__init__(parent)
         _loadUi(os.path.join(UI_FOLDER, 'mainWindow.ui'), self)
 
+        # node and model setup
         self._rootNode = node.Node("Root")
         childNode0 = node.TransformNode("A", self._rootNode)
         childNode1 = node.LightNode("B", self._rootNode)
@@ -36,41 +49,74 @@ class DataWidgetMapperWindow(QtWidgets.QMainWindow):
         self._proxyModel.setSourceModel(self._model)
         self._proxyModel.setDynamicSortFilter(True)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        
         self._proxyModel.setSortRole(models.SceneGraphModel.sortRole)
         self._proxyModel.setFilterRole(models.SceneGraphModel.filterRole)
         self._proxyModel.setFilterKeyColumn(0)
         
         self.uiTree.setModel(self._proxyModel)
+
+        # add main layout
+        self._propEditor = PropertiesEditor(self._proxyModel, self)
+        self.layoutMain.addWidget(self._propEditor)
+
+        # for xml highlighting
+        highlighter.XMLHighlighter(self.uiXml.document())
+
+        # connect signals
+        self._model.dataChanged.connect(self.updateXml)
+        self.uiTree.selectionModel().currentChanged.connect(self._propEditor.setSelection)
         self.uiFilter.textChanged.connect(self._proxyModel.setFilterRegExp)
 
-        self._propEditor = PropertiesEditor(self)
-        self.layoutMain.addWidget(self._propEditor)
-        self._propEditor.setModel(self._proxyModel)
-        self.uiTree.selectionModel().currentChanged.connect(self._propEditor.setSelection)
-
-        self._model.dataChanged.connect(self.updateXml)
-        # Create our XMLHighlighter derived from QSyntaxHighlighter
-        highlighter.XMLHighlighter(self.uiXml.document())
+        # initialize xml
         self.updateXml()
 
     def updateXml(self):
-        print "UPDATING XML"
+        """
+        Refresh xml ui field with the xml formatting from the lastest node
+        attribute dictionary
+        """
         xml = self._rootNode.asXml()
         self.uiXml.setPlainText(xml)
 
 
+class DataMapperWidget(QtWidgets.QWidget):
+    """
+    Abstract class for widget with data mapper setup
+    """
+    def __init__(self, model, parent=None):
+        super(DataMapperWidget, self).__init__(parent)
+        self._dataMapper = QtWidgets.QDataWidgetMapper()
+
+        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setModel
+        if isinstance(model, QtCore.QAbstractProxyModel):
+            model = model.sourceModel()
+        self._dataMapper.setModel(model)
+
+    def addMapping(self):
+        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#addMapping
+        self._dataMapper.addMapping(self.uiName, 0)
+        self._dataMapper.addMapping(self.uiType, 1)
+
+    """INPUTS: QModelIndex"""
+    def setSelection(self, current):
+        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setRootIndex
+        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setCurrentModelIndex
+        parent = current.parent()
+        self._dataMapper.setRootIndex(parent)
+        self._dataMapper.setCurrentModelIndex(current)
+
+
 class PropertiesEditor(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, model, parent=None):
         super(PropertiesEditor, self).__init__(parent)
         _loadUi(os.path.join(UI_FOLDER, 'mainLayout.ui'), self)
 
-        self._proxyModel = None
+        self._proxyModel = model
 
-        self._nodeEditor = NodeEditor(self)
-        self._lightEditor = LightEditor(self)
-        self._cameraEditor = CameraEditor(self)
-        self._transformEditor = TransformEditor(self)
+        self._nodeEditor = NodeEditor(model, self)
+        self._lightEditor = LightEditor(model, self)
+        self._cameraEditor = CameraEditor(model, self)
+        self._transformEditor = TransformEditor(model, self)
         
         self.layoutNode.addWidget(self._nodeEditor)
         self.layoutSpecs.addWidget(self._lightEditor)
@@ -80,135 +126,92 @@ class PropertiesEditor(QtWidgets.QWidget):
         self._lightEditor.setVisible(False)
         self._cameraEditor.setVisible(False)
         self._transformEditor.setVisible(False)
-               
+
     """INPUTS: QModelIndex, QModelIndex"""
+    # https://doc.qt.io/qt-5/qitemselectionmodel.html#currentChanged
     def setSelection(self, current, old):
+        # update selection and display based on node selected
         current = self._proxyModel.mapToSource(current)
-        node = current.internalPointer()
+        currentNode = current.internalPointer()
+
+        # node editor always get displayed
+        self._nodeEditor.setSelection(current)
 
         self._cameraEditor.setVisible(False)
         self._lightEditor.setVisible(False)
         self._transformEditor.setVisible(False)
 
-        ntype = node.type if node else None
-            
+        ntype = currentNode.type if currentNode else None
         if ntype == "camera":
             self._cameraEditor.setVisible(True)
+            self._cameraEditor.setSelection(current)
         
         elif ntype == "light":
             self._lightEditor.setVisible(True)
+            self._lightEditor.setSelection(current)
              
         elif ntype == "transform":
             self._transformEditor.setVisible(True)
-
-        self._nodeEditor.setSelection(current)
-        self._cameraEditor.setSelection(current)
-        self._lightEditor.setSelection(current)
-        self._transformEditor.setSelection(current)
-
-    def setModel(self, proxyModel):
-        self._proxyModel = proxyModel
-        
-        self._nodeEditor.setModel(proxyModel)
-        self._lightEditor.setModel(proxyModel)
-        self._cameraEditor.setModel(proxyModel)
-        self._transformEditor.setModel(proxyModel)
+            self._transformEditor.setSelection(current)
 
 
-class NodeEditor(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(NodeEditor, self).__init__(parent)
+class NodeEditor(DataMapperWidget):
+    def __init__(self, model, parent=None):
+        super(NodeEditor, self).__init__(model, parent)
         _loadUi(os.path.join(UI_FOLDER, 'nodeEditor.ui'), self)
+        self.addMapping()
         
-        self._dataMapper = QtWidgets.QDataWidgetMapper()
-        
-    def setModel(self, proxyModel):
-        self._proxyModel = proxyModel
-        self._dataMapper.setModel(proxyModel.sourceModel())
-        
+    def addMapping(self):
         self._dataMapper.addMapping(self.uiName, 0)
         self._dataMapper.addMapping(self.uiType, 1)
-        
-    """INPUTS: QModelIndex"""
-    def setSelection(self, current):
-        parent = current.parent()
-        self._dataMapper.setRootIndex(parent)
-        self._dataMapper.setCurrentModelIndex(current)
 
 
-class LightEditor(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(LightEditor, self).__init__(parent)
+class LightEditor(DataMapperWidget):
+    def __init__(self, model, parent=None):
+        super(LightEditor, self).__init__(model, parent)
         _loadUi(os.path.join(UI_FOLDER, 'lightEditor.ui'), self)
-        
-        self._dataMapper = QtWidgets.QDataWidgetMapper()
+
         for shape in node.LightShapes:
             self.uiShape.addItem(shape.name)
+        self.addMapping()
 
-    def setModel(self, proxyModel):
-        self._proxyModel = proxyModel
-        self._dataMapper.setModel(proxyModel.sourceModel())
-        
+    def addMapping(self):
         self._dataMapper.addMapping(self.uiLightIntensity, 2)
         self._dataMapper.addMapping(self.uiNear, 3)
         self._dataMapper.addMapping(self.uiFar, 4)
         self._dataMapper.addMapping(self.uiShadows, 5)
         self._dataMapper.addMapping(self.uiShape, 6, "currentIndex")
         
-    """INPUTS: QModelIndex"""
-    def setSelection(self, current):
-        parent = current.parent()
-        self._dataMapper.setRootIndex(parent)
-        self._dataMapper.setCurrentModelIndex(current)
-        
 
-class CameraEditor(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(CameraEditor, self).__init__(parent)
+class CameraEditor(DataMapperWidget):
+    def __init__(self, model, parent=None):
+        super(CameraEditor, self).__init__(model, parent)
         _loadUi(os.path.join(UI_FOLDER, 'cameraEditor.ui'), self)
+
+        self.addMapping()
         
-        self._dataMapper = QtWidgets.QDataWidgetMapper()
-        
-    def setModel(self, proxyModel):
-        self._proxyModel = proxyModel
-        self._dataMapper.setModel(proxyModel.sourceModel())
-        
+    def addMapping(self):
         self._dataMapper.addMapping(self.uiMotionBlur, 2)
         self._dataMapper.addMapping(self.uiShakeIntensity, 3)
         
-    """INPUTS: QModelIndex"""
-    def setSelection(self, current):
-        parent = current.parent()
-        self._dataMapper.setRootIndex(parent)
-        self._dataMapper.setCurrentModelIndex(current)
-        
 
-class TransformEditor(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(TransformEditor, self).__init__(parent)
+class TransformEditor(DataMapperWidget):
+    def __init__(self, model, parent=None):
+        super(TransformEditor, self).__init__(model, parent)
         _loadUi(os.path.join(UI_FOLDER, 'transformEditor.ui'), self)
 
-        self._dataMapper = QtWidgets.QDataWidgetMapper()
+        self.addMapping()
         
-    def setModel(self, proxyModel):
-        self._proxyModel = proxyModel
-        self._dataMapper.setModel(proxyModel.sourceModel())
-        
+    def addMapping(self):
         self._dataMapper.addMapping(self.uiX, 2)
         self._dataMapper.addMapping(self.uiY, 3)
         self._dataMapper.addMapping(self.uiZ, 4)
-        
-    """INPUTS: QModelIndex"""
-    def setSelection(self, current):
-        parent = current.parent()
-        self._dataMapper.setRootIndex(parent)
-        self._dataMapper.setCurrentModelIndex(current)
         
         
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     
-    wnd = DataWidgetMapperWindow()
+    wnd = MainWindow()
     wnd.show()
 
     sys.exit(app.exec_())
