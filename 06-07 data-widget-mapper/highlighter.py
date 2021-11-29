@@ -1,3 +1,7 @@
+"""
+Yasin's XML Highlighter
+"""
+
 from Qt import QtCore, QtGui
 
 

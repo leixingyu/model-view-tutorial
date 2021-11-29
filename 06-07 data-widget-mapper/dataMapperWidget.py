@@ -1,5 +1,6 @@
 """
-
+The supplement class for custom DataMapperWidget to be displayed and connected
+in the main window.
 """
 
 import os
@@ -19,23 +20,41 @@ class DataMapperWidget(QtWidgets.QWidget):
     Abstract class for widget with data mapper setup
     """
     def __init__(self, model, parent=None):
+        """
+        Initialization creates a QDataWidgetMapper and connects it with
+        the data model
+
+        :param model: QAbstractItemModel. model to be connected
+        :param parent: QWidget. parent widget for placing the current widget
+        """
         super(DataMapperWidget, self).__init__(parent)
         self._dataMapper = QtWidgets.QDataWidgetMapper()
 
+        # proxy model needs to be converted to source model
         # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setModel
         if isinstance(model, QtCore.QAbstractProxyModel):
             model = model.sourceModel()
         self._dataMapper.setModel(model)
 
     def addMapping(self):
-        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#addMapping
-        self._dataMapper.addMapping(self.uiName, 0)
-        self._dataMapper.addMapping(self.uiType, 1)
+        """
+        Custom: this sets mapping for specific widget item to specific
+        model item.
 
-    """INPUTS: QModelIndex"""
+        # https://doc.qt.io/qt-5/qdatawidgetmapper.html#addMapping
+        """
+        pass
+
     def setSelection(self, current):
+        """
+        Custom: this sets the dataMapper index to the updated item that
+        is currently selected, so it knows which item/node to display
+
         # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setRootIndex
         # https://doc.qt.io/qt-5/qdatawidgetmapper.html#setCurrentModelIndex
+
+        :param current: QModelIndex. current model item index being selected
+        """
         parent = current.parent()
         self._dataMapper.setRootIndex(parent)
         self._dataMapper.setCurrentModelIndex(current)

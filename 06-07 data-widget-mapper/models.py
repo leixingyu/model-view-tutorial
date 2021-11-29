@@ -1,3 +1,9 @@
+"""
+This model is similar to previous lesson supporting our custom node, the only
+difference being the data() and setData() method lets the node to handle it
+internally
+"""
+
 from Qt import QtCore, QtGui
 
 import node
@@ -32,6 +38,10 @@ class SceneGraphModel(QtCore.QAbstractItemModel):
 
         currentNode = index.internalPointer()
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            # not all column needs to be displayed in the view, more columns
+            # can store different types of data of the node, and they can be
+            # accessed in other places; in our case, dataWidgetMapper maps
+            # data from multiple columns on multiple ui elements for display
             return currentNode.data(index.column())
  
         if role == QtCore.Qt.DecorationRole:

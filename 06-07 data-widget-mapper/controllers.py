@@ -1,5 +1,7 @@
 """
-
+The main window for instantiate different types of nodes to be passed in
+our hierarchical model, and displayed in the tree view. additionally: a custom
+xml viewer, and dynamic property widget using QDataWidgetMapper
 
 The xml serves only for the purpose of displaying the data, which is a one-way
 direction data communication
@@ -91,7 +93,8 @@ class PropertyContainerWidget(QtWidgets.QWidget):
         self._lightEditor = dataMapperWidget.LightEditor(model, self)
         self._cameraEditor = dataMapperWidget.CameraEditor(model, self)
         self._transformEditor = dataMapperWidget.TransformEditor(model, self)
-        
+
+        # add widget and hide them
         self.layoutNode.addWidget(self._nodeEditor)
         self.layoutSpecs.addWidget(self._lightEditor)
         self.layoutSpecs.addWidget(self._cameraEditor)
@@ -101,15 +104,24 @@ class PropertyContainerWidget(QtWidgets.QWidget):
         self._cameraEditor.setVisible(False)
         self._transformEditor.setVisible(False)
 
-    """INPUTS: QModelIndex, QModelIndex"""
-    # https://doc.qt.io/qt-5/qitemselectionmodel.html#currentChanged
     def setSelection(self, current, old):
+        """
+        Custom: update selection whenever currentChanged() signal is emitted
+        https://doc.qt.io/qt-5/qitemselectionmodel.html#currentChanged
+
+        update which property widget is displayed and display the data
+        of the node corresponding to the current model item index by calling
+        subsequent setSelection() method in those widget class
+
+        :param current: QModelIndex. current model item index being selected
+        :param old: QModelIndex. previous model item index
+        """
         # update selection and display based on node selected
-        current = self._proxyModel.mapToSource(current)
-        currentNode = current.internalPointer()
+        currentIndex = self._proxyModel.mapToSource(current)
+        currentNode = currentIndex.internalPointer()
 
         # node editor always get displayed
-        self._nodeEditor.setSelection(current)
+        self._nodeEditor.setSelection(currentIndex)
 
         self._cameraEditor.setVisible(False)
         self._lightEditor.setVisible(False)
@@ -118,15 +130,15 @@ class PropertyContainerWidget(QtWidgets.QWidget):
         ntype = currentNode.type if currentNode else None
         if ntype == "camera":
             self._cameraEditor.setVisible(True)
-            self._cameraEditor.setSelection(current)
+            self._cameraEditor.setSelection(currentIndex)
         
         elif ntype == "light":
             self._lightEditor.setVisible(True)
-            self._lightEditor.setSelection(current)
+            self._lightEditor.setSelection(currentIndex)
              
         elif ntype == "transform":
             self._transformEditor.setVisible(True)
-            self._transformEditor.setSelection(current)
+            self._transformEditor.setSelection(currentIndex)
 
 
 if __name__ == '__main__':
