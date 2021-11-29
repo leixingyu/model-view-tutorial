@@ -1,3 +1,9 @@
+"""
+The node module is for creating node data structure/class that supports
+hierarchical model. Each node object reflects to an abstract item which
+has child and parent relationships
+"""
+
 import os
 
 from Qt import QtGui
@@ -64,7 +70,7 @@ class Node(object):
     @property
     def icon(self):
         """
-        :return: QPixmap. node icon to be displayed in decoration role
+        :return: QIcon. node icon to be displayed in decoration role
         """
         return self._icon
 

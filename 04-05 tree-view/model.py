@@ -20,8 +20,6 @@ import node
 
 
 class SceneGraphModel(QtCore.QAbstractItemModel):
-    """INPUTS: currentNode, QObject"""
-
     def __init__(self, root):
         """
         Initialization

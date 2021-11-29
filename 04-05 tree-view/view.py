@@ -1,3 +1,8 @@
+"""
+The main window for instantiate different types of nodes to be passed in
+our hierarchical model, and displayed in the tree view
+"""
+
 import os
 import sys
 
