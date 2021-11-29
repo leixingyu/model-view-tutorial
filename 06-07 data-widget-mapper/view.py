@@ -20,7 +20,7 @@ from Qt import _loadUi
 
 import node
 import highlighter
-import models
+import model
 import dataMapperWidget
 
 
@@ -45,15 +45,15 @@ class MainWindow(QtWidgets.QMainWindow):
         childNode7 = node.LightNode("H", childNode6)
         childNode8 = node.CameraNode("I", childNode7)
 
-        self._model = models.SceneGraphModel(self._rootNode, self)
+        self._model = model.SceneGraphModel(self._rootNode, self)
 
         # proxy model
         self._proxyModel = QtCore.QSortFilterProxyModel(self)
         self._proxyModel.setSourceModel(self._model)
         self._proxyModel.setDynamicSortFilter(True)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self._proxyModel.setSortRole(models.SceneGraphModel.sortRole)
-        self._proxyModel.setFilterRole(models.SceneGraphModel.filterRole)
+        self._proxyModel.setSortRole(model.SceneGraphModel.sortRole)
+        self._proxyModel.setFilterRole(model.SceneGraphModel.filterRole)
         self._proxyModel.setFilterKeyColumn(0)
         
         self.uiTree.setModel(self._proxyModel)
