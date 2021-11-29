@@ -27,8 +27,7 @@ class PaletteListModel(QtCore.QAbstractListModel):
         Initialization
 
         :param colors: list. list of QColors
-        :param parent: QModelIndex. list model doesn't need a parent since
-        it isn't a hierarchical structure, thus default to null pointer
+        :param parent: QModelIndex. default to null pointer
         """
         QtCore.QAbstractListModel.__init__(self, parent)
         self._colors = colors
